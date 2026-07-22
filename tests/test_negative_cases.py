@@ -24,15 +24,29 @@ class TestNegativeCases:
         response = api_client.session.delete(f"{api_client.base_url}/booking/{created_booking_id}")
         assert response.status_code in (401, 403)
 
+    @pytest.mark.xfail(
+        reason="Known Restful-Booker bug: incomplete payloads return a raw "
+                "500 instead of a 4xx client error. Tracked here rather than "
+                "silently loosened so the regression stays visible.",
+        strict=True,
+    )
     @pytest.mark.parametrize("bad_payload", [
         {},                                    # empty payload
         {"firstname": "OnlyFirstName"},        # missing required fields
     ])
     def test_create_booking_with_incomplete_payload_is_handled_gracefully(self, api_client, bad_payload):
+        """KNOWN BUG (found via this test): Restful-Booker returns a raw
+        500 Internal Server Error for incomplete payloads instead of a
+        4xx client error. Marked xfail(strict=True) so it shows clearly
+        in test output as a documented, tracked defect rather than a
+        silent pass or a build-breaking failure — and if the API is ever
+        fixed, strict mode will flag this test so it can be re-enabled.
+        """
         response = api_client.post("/booking", json=bad_payload)
-        # This API is lenient with some fields, but the assertion documents
-        # the expected contract: never a raw 500, always a defined response.
-        assert response.status_code < 500
+        assert response.status_code < 500, (
+            f"Expected a 4xx client error for incomplete payload, got "
+            f"{response.status_code}."
+        )
 
     def test_filter_bookings_by_name(self, api_client, new_booking_payload):
         # Create a booking with a distinctive name, then confirm the

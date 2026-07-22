@@ -46,6 +46,12 @@ pytest --html=report.html --self-contained-html
 - CI/CD integration — tests run automatically via GitHub Actions on every push
 - Clear documentation, because untested code that no one can run isn't useful to anyone
 
+## A real bug this suite found
+
+`test_create_booking_with_incomplete_payload_is_handled_gracefully` caught a genuine defect: Restful-Booker returns a raw `500 Internal Server Error` for incomplete booking payloads instead of a proper `4xx` client error. Rather than silently loosening the assertion to make the test "pass," it's marked `@pytest.mark.xfail(strict=True)` with a clear reason — so the defect stays visible in every test run, CI stays green, and if the API is ever fixed, `strict=True` will flag the test so it can be promoted back to a normal passing assertion.
+
+This is deliberate: a good test suite documents known issues instead of hiding them.
+
 ## A note on the demo API
 
 Restful-Booker is a shared public instance that **resets every 10 minutes** back to its default seeded data. The test suite is written defensively around that — creating its own booking records rather than assuming specific IDs exist — but a reset mid-run could occasionally cause a rare flake. That's a realistic constraint of testing against any shared, non-isolated environment.
